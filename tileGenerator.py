@@ -1,5 +1,5 @@
 from PIL import Image
-from collections import namedtuple, deque
+from collections import deque
 import random
 import numpy as np
 

@@ -97,11 +97,11 @@ class Tile:
 
 	#might need to fix order of xPos and yPos
 	def validPoint(self, layer, xPos, yPos):
-		if len(self.tile) > layer
-			if len(self.tile[0]) > xPos:
-				if len(self.tile[0][0]) > yPos:
+		if len(self.tile) > layer:
+			if len(self.tile[0]) > yPos:
+				if len(self.tile[0][0]) > xPos:
 					if xPos > 0 or yPos > 0:
-						if self.tile[xPos][yPos] == None:
+						if self.tile[yPos][xPos] == None:
 							return True
 		return False
 

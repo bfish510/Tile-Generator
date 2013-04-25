@@ -73,12 +73,13 @@ class ColorTracker:
 
 	#color should be a tuple in the form RGBA
 	def addColor(self, color):
-		self.Colors[color.name] = color.RGBA
+		self.Colors[color.name] = color
 
 	def debug(self):
 		for key in self.Colors.keys():
 			print("Color: " + key)
-			print("RGBA: " + str(self.Colors[key]))
+			print("RGBA: " + str(self.Colors[key].RGBA))
+			print("Transition Table" + str(self.Colors[key].transitionTable))
 
 class Tile:
 	def __init__(self, sizeX, sizeY):
@@ -113,10 +114,21 @@ class Tile:
 			CurrentPosition = self.Queue.popleft()
 			self.generateColors()
 
-	def generateColors(self):
+	'''
+	Used to generate a single layer in an image. Shouldn't really be used directly but that's up to you!!!!!
+	'''
+	def generateLayer(self):
 		return False
 
-	
+	'''
+	Used to generate the entire image. Will also normalize all fields.
+	'''
+	def generateImage(self, tracker):
+		for color in tracker.Colors.keys():
+			print(tracker.Colors[color].transitionTable)
+			tracker.Colors[color].normalizeTable()
+		tracker.debug()
+
 
 
 def test():
@@ -129,5 +141,7 @@ def test():
 	tracker.addColor(blue)
 	tracker.addColor(green)
 	tracker.debug()
+	tile = Tile(10, 10)
+	tile.generateImage(tracker)
 	print(red.transitionTable)
 test()

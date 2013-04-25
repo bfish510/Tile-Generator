@@ -111,7 +111,13 @@ class Tile:
 			#random color? 
 		while(self.queue):
 			CurrentPosition = self.Queue.popleft()
-			generateColors()
+			self.generateColors()
+
+	def generateColors(self):
+		return False
+
+	
+
 
 def test():
 	red = Color("RED", (255,0,0,255))
@@ -123,5 +129,5 @@ def test():
 	tracker.addColor(blue)
 	tracker.addColor(green)
 	tracker.debug()
-
+	print(red.transitionTable)
 test()

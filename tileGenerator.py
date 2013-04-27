@@ -13,10 +13,13 @@ class Color:
 	def __init__(self, name, color):
 		self.name = name
 		self.RGBA = color
-		#index 0 = table for layer below
-		#index 1 = table for current layer
-		#index 2 = table above
-		self.transitionTable = [[[0 for x in range(3)] for y in range(3)] for z in range(3)]
+		"""
+			might make this four dimensional to reduce from 2 rand calls in my pervious version to 1.
+			This should speed things up considerably with the new transition algorithm.
+			Also, might make middle index 
+		"""
+		self.transitionTable = [[[[0] for x in range(3)] for y in range(3)] for z in range(3)]
+
 		
 
 	def debug(self):
@@ -32,15 +35,17 @@ class Color:
 		total = 0
 		for layer in self.transitionTable:
 			for row in layer:
-				total += sum(row)
+				for color in row:
+					total += sum(color)
 		if total != 1:
 			if total != 0:
 				for layer in self.transitionTable:
 					for row in layer:
-						for ele in row:
-							ele = ele/total
+						for colors in row:
+							for ele in colors:
+								ele = ele/total
 			else:
-				self.transitionTable[1][1][1] = 1
+				self.transitionTable[1][1][1][0] = 1
 
 	def updateTransitionLayer(self, layer, newTable):
 		self.transitionTable[layer] = newTable
@@ -82,8 +87,8 @@ class ColorTracker:
 			print("Transition Table" + str(self.Colors[key].transitionTable))
 
 class Tile:
-	def __init__(self, sizeX, sizeY):
-		self.tile = [[None for x in range(sizeX)] for y in range(sizeY)]
+	def __init__(self, sizeX, sizeY, sizeZ):
+		self.tile = [[[None for x in range(sizeX)] for y in range(sizeY)] for z in range(sizeZ)]
 		self.queue = []
 
 	def saveTile(self):
@@ -94,15 +99,15 @@ class Tile:
 
 	def presetPixel(self, color, layer, xPos, yPos):
 		tile[layer][yPos][xPos] = color
-		queue.append((xPos,yPos))
+		queue.append((xPos,yPos,layer))
 
-	#might need to fix order of xPos and yPos
+	
 	def validPoint(self, layer, xPos, yPos):
 		if len(self.tile) > layer:
 			if len(self.tile[0]) > yPos:
 				if len(self.tile[0][0]) > xPos:
 					if xPos > 0 or yPos > 0:
-						if self.tile[yPos][xPos] == None:
+						if self.tile[layer][yPos][xPos] == None:
 							return True
 		return False
 
@@ -116,6 +121,7 @@ class Tile:
 
 	'''
 	Used to generate a single layer in an image. Shouldn't really be used directly but that's up to you!!!!!
+	This might not need to exist because we will be transitioning between layers
 	'''
 	def generateLayer(self):
 		return False
@@ -127,7 +133,8 @@ class Tile:
 		for color in tracker.Colors.keys():
 			print(tracker.Colors[color].transitionTable)
 			tracker.Colors[color].normalizeTable()
-		tracker.debug()
+		for layer in range(0, len(self.tile)):
+			generateImage()
 
 
 

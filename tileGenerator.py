@@ -3,11 +3,13 @@ from collections import deque
 import random
 import numpy as np
 
+ABOVE = 2
+CURRENT = MIDDLE = 1
+BELOW = 0
+
 class Color:
 	# used for layers and rows.
-	ABOVE = 2
-	CURRENT = MIDDLE = 1
-	BELOW = 0
+	
 
 
 	def __init__(self, name, color):
@@ -18,7 +20,7 @@ class Color:
 			This should speed things up considerably with the new transition algorithm.
 			Also, might make middle index 
 		"""
-		self.transitionTable = [[[[0] for x in range(3)] for y in range(3)] for z in range(3)]
+		self.transitionTable = [[[[0, None] for x in range(3)] for y in range(3)] for z in range(3)]
 
 		
 
@@ -36,7 +38,11 @@ class Color:
 		for layer in self.transitionTable:
 			for row in layer:
 				for color in row:
-					total += sum(color)
+					for ele in color:
+						if ele:
+							total += ele[0]
+						else:
+							total += 0
 		if total != 1:
 			if total != 0:
 				for layer in self.transitionTable:
@@ -45,7 +51,7 @@ class Color:
 							for ele in colors:
 								ele = ele/total
 			else:
-				self.transitionTable[1][1][1][0] = 1
+				self.transitionTable[1][1][1][0] = [1, None]
 
 	def updateTransitionLayer(self, layer, newTable):
 		self.transitionTable[layer] = newTable
@@ -69,7 +75,7 @@ class Color:
 		updateTransitionRow(self, layer, row, newRow)
 
 	def clearTable(self):
-		self.transitionTable = [[[0 for x in range(3)] for y in range(3)] for z in range(3)]
+		self.transitionTable = [[[[0, None] for x in range(3)] for y in range(3)] for z in range(3)]
 
 
 class ColorTracker:
@@ -89,7 +95,7 @@ class ColorTracker:
 class Tile:
 	def __init__(self, sizeX, sizeY, sizeZ):
 		self.tile = [[[None for x in range(sizeX)] for y in range(sizeY)] for z in range(sizeZ)]
-		self.queue = []
+		self.queue = deque()
 
 	def saveTile(self):
 		im = Image.fromarray(self.tile)
@@ -98,8 +104,8 @@ class Tile:
 		im.save(name + '.png')
 
 	def presetPixel(self, color, layer, xPos, yPos):
-		tile[layer][yPos][xPos] = color
-		queue.append((xPos,yPos,layer))
+		self.tile[layer][yPos][xPos] = color
+		self.queue.append((xPos,yPos,layer))
 
 	
 	def validPoint(self, layer, xPos, yPos):
@@ -116,7 +122,7 @@ class Tile:
 			self.presetPixel(optionalColor, 0, 0, 0)
 			#random color? 
 		while(self.queue):
-			CurrentPosition = self.Queue.popleft()
+			CurrentPosition = self.queue.popleft()
 			self.generateColors()
 
 	'''
@@ -131,15 +137,14 @@ class Tile:
 	'''
 	def generateImage(self, tracker):
 		for color in tracker.Colors.keys():
-			print(tracker.Colors[color].transitionTable)
+			print(color + '\t' + str(tracker.Colors[color].transitionTable))
 			tracker.Colors[color].normalizeTable()
-		for layer in range(0, len(self.tile)):
-			generateImage()
+		self.start('RED')
 
 
 
 def test():
-	red = Color("RED", (255,0,0,255))
+	red = Color("RED ", (255,0,0,255))
 	blue = Color("BLUE", (0,255,0,255))
 	green = Color("GREEN", (0,0,255,255))
 	red.normalizeTable()
@@ -147,8 +152,8 @@ def test():
 	tracker.addColor(red)
 	tracker.addColor(blue)
 	tracker.addColor(green)
-	tracker.debug()
-	tile = Tile(10, 10)
+	#tracker.debug()
+	tile = Tile(10, 10, 1)
 	tile.generateImage(tracker)
-	print(red.transitionTable)
+	#print(red.transitionTable)
 test()

@@ -3,80 +3,83 @@ from collections import deque
 import random
 import numpy as np
 
-ABOVE = 2
-CURRENT = MIDDLE = 1
-BELOW = 0
+#Layers
+LAYER_UP = 18
+LAYER_CURRENT = 9
+LAYER_DOWN = 0
+
+#Directions
+ROW_UP = 0
+ROW_CURRENT = 3
+ROW_DOWN = 6
+
+#Position
+LEFT = 1
+CURRENT = 2
+RIGHT = 3
+
+#Self
+SELF = 14
 
 class Color:
-	# used for layers and rows.
-	
-
-
+	#possibly add checks to see if createTransitionTable is the last method called
+	#before start
 	def __init__(self, name, color):
 		self.name = name
 		self.RGBA = color
-		"""
-			might make this four dimensional to reduce from 2 rand calls in my pervious version to 1.
-			This should speed things up considerably with the new transition algorithm.
-			Also, might make middle index 
-		"""
-		self.transitionTable = [[[[0, None] for x in range(3)] for y in range(3)] for z in range(3)]
-
-		
+		self.transitions = dict()	
+		self.transitionTable = dict()	
 
 	def debug(self):
 		print("Name: " + self.name)
 		print("RGBA: " + str(self.RGBA))
-		print("Table: " + str(self.transitionTable))
+		print("Table: " + str(self.transitions))
 
-	"""
-		A zero magnitude table will result in the middle index being 1
-	 	and will cause generation to end with this item. 
-	 """ 
-	def normalizeTable(self):
-		total = 0
-		for layer in self.transitionTable:
-			for row in layer:
-				for color in row:
-					for ele in color:
-						if ele:
-							total += ele[0]
-						else:
-							total += 0
-		if total != 1:
-			if total != 0:
-				for layer in self.transitionTable:
-					for row in layer:
-						for colors in row:
-							for ele in colors:
-								ele = ele/total
+	def addTransition(self, chance, color, direction):
+		self.transitions[(color, direction)] = chance
+
+	def removeTransition(self, color, direction):
+		self.transitions[(color, direction)] = None
+
+	def normalize(self):
+		total = 0;
+		keys = self.transitions.keys()
+		for trans in keys:
+			total += self.transitions[trans]
+		if len(keys) == 0:
+			self.addTransition(1, None, 14)
+		else:
+			for trans in keys:
+				self.transitions[trans] = self.transitions[trans]/total
+
+	def createTransitionTable(self):
+		sumation = 0
+		for transition in self.transitions.keys():
+			#value will be the key to this since we will iterate over it and it doesnt need to be easy for the user to manipulate it since the user won't touch it
+			if transition[0]:
+				print(str(transition[0].name) + " " + str(transition[1]) + " " + str(self.transitions[transition]))
 			else:
-				self.transitionTable[1][1][1][0] = [1, None]
+				print(str(transition[0]) + " " + str(transition[1]) + " " + str(self.transitions[transition]))
+			self.transitionTable[sumation] = transition
+			sumation += self.transitions[transition]
 
-	def updateTransitionLayer(self, layer, newTable):
-		self.transitionTable[layer] = newTable
+	def generate(self, value):
+		table = self.transitionTable
+		keys = sorted(table.keys())
+		notFound = True
+		i = 0
+		tbr = None
 
-	def updateTransitionRow(self, layer, row, newRow):
-		self.transitionTable[layer][row] = newRow
+		while(notFound and i < len(keys)):
+			if value >= keys[i]:
+				tbr = table[keys[i]]
+			else:
+				notFound = False
+			i += 1
+		print("TBR: " + str(tbr))
+		return tbr
 
-	def updateTransitionIndex(self, layer, row, index, value):
-		self.transitionTable[layer][row][index] = value
-
-	def clearAndUpdateTransitionIndex(self, layer, row, index, value):
-		clearTable()
-		updateTransitionIndex(self, layer, row, index, value)
-
-	def clearAndUpdateTransitionLayer(self, layer, newTable):
-		clearTable()
-		updateTransitionLayer(self, layer, newTable)
-
-	def clearAndUpdateTransitionRow(self, layer, row, newRow):
-		clearTable()
-		updateTransitionRow(self, layer, row, newRow)
-
-	def clearTable(self):
-		self.transitionTable = [[[[0, None] for x in range(3)] for y in range(3)] for z in range(3)]
-
+		
 
 class ColorTracker:
 	def __init__(self):
@@ -87,17 +90,23 @@ class ColorTracker:
 		self.Colors[color.name] = color
 
 	def debug(self):
-		for key in self.Colors.keys():
-			print("Color: " + key)
-			print("RGBA: " + str(self.Colors[key].RGBA))
-			print("Transition Table" + str(self.Colors[key].transitionTable))
+		for color in self.Colors.keys():
+			print(self.Colors[color].debug())
+
+	def normalizeAll(self):
+		for color in self.Colors.keys():
+			self.Colors[color].normalize()
+
+	def createTransitionTable(self):
+		for color in self.Colors.keys():
+			self.Colors[color].createTransitionTable()
 
 class Tile:
 	def __init__(self, sizeX, sizeY, sizeZ):
 		self.tile = [[[None for x in range(sizeX)] for y in range(sizeY)] for z in range(sizeZ)]
 		self.queue = deque()
 
-	def saveTile(self):
+	def saveTile(self, name):
 		im = Image.fromarray(self.tile)
 		im.mode = 'RGBA'
 		im.show()
@@ -117,29 +126,24 @@ class Tile:
 							return True
 		return False
 
-	def start(self, optionalColor):
+	def start(self, optionalColor, tracker):
+
 		if not self.queue:
 			self.presetPixel(optionalColor, 0, 0, 0)
 			#random color? 
 		while(self.queue):
 			CurrentPosition = self.queue.popleft()
-			self.generateColors()
-
-	'''
-	Used to generate a single layer in an image. Shouldn't really be used directly but that's up to you!!!!!
-	This might not need to exist because we will be transitioning between layers
-	'''
-	def generateLayer(self):
-		return False
+			x,y,z = CurrentPosition
+			self.tile[z][y][x].generate(random.random())
+			#self.generateColors()
 
 	'''
 	Used to generate the entire image. Will also normalize all fields.
 	'''
 	def generateImage(self, tracker):
-		for color in tracker.Colors.keys():
-			print(color + '\t' + str(tracker.Colors[color].transitionTable))
-			tracker.Colors[color].normalizeTable()
-		self.start('RED')
+		tracker.normalizeAll()
+		tracker.createTransitionTable()
+		self.start('RED', tracker)
 
 
 
@@ -147,13 +151,27 @@ def test():
 	red = Color("RED ", (255,0,0,255))
 	blue = Color("BLUE", (0,255,0,255))
 	green = Color("GREEN", (0,0,255,255))
-	red.normalizeTable()
+	red.addTransition(.2, green, (LEFT+ROW_CURRENT)+LAYER_CURRENT)
+	red.addTransition(.2, blue, (RIGHT+ROW_CURRENT)+LAYER_CURRENT)
+	red.addTransition(.2, red, (CURRENT+ROW_UP)+LAYER_CURRENT)
+	red.addTransition(.2, green, (CURRENT+ROW_DOWN)+LAYER_CURRENT)
+	blue.addTransition(.25, green, (LEFT+ROW_CURRENT)+LAYER_CURRENT)
+	blue.addTransition(.25, blue, (RIGHT+ROW_CURRENT)+LAYER_CURRENT)
+	blue.addTransition(.25, red, (CURRENT+ROW_UP)+LAYER_CURRENT)
+	blue.addTransition(.25, green, (CURRENT+ROW_DOWN)+LAYER_CURRENT)
+	green.addTransition(1, green, (LEFT+ROW_CURRENT)+LAYER_CURRENT)
+	green.addTransition(1, blue, (RIGHT+ROW_CURRENT)+LAYER_CURRENT)
+	green.addTransition(1, red, (CURRENT+ROW_UP)+LAYER_CURRENT)
+	green.addTransition(1, green, (CURRENT+ROW_DOWN)+LAYER_CURRENT)
 	tracker = ColorTracker()
 	tracker.addColor(red)
 	tracker.addColor(blue)
 	tracker.addColor(green)
 	#tracker.debug()
-	tile = Tile(10, 10, 1)
+	tile = Tile(100, 100, 1)
+	tile.presetPixel(red, 0, 0, 0)
+	tile.presetPixel(green, 0, 99, 0)
+	tile.presetPixel(blue, 0, 99, 99)
 	tile.generateImage(tracker)
 	#print(red.transitionTable)
 test()
